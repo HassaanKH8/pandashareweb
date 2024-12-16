@@ -1,15 +1,14 @@
 import React, { useRef, useState } from 'react';
 import { io } from 'socket.io-client';
+
 import './App.css';
 
 const socket = io(process.env.REACT_APP_LINK_URL);
 
 const App = () => {
   const [sessionId, setSessionId] = useState('');
-
   const fileInputRef = useRef(null);
-  const [selectedFiles, setSelectedFiles] = useState([])
-
+  const [selectedFiles, setSelectedFiles] = useState([]);
   const [receivedFiles, setReceivedFiles] = useState([]);
 
   const handleButtonClick = () => {
@@ -17,37 +16,32 @@ const App = () => {
   };
 
   const handleFileChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setSelectedFiles((prevFiles) => [...prevFiles, file]);
-    }
+    const files = Array.from(event.target.files);
+    setSelectedFiles(files);
   };
 
-  const handlefiledelete = (id) => {
-    const updatedFiles = selectedFiles.filter((file, index) => index !== id);
-    setSelectedFiles(updatedFiles);
-  }
+  const handleFileDelete = (index) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
 
   const handleSend = () => {
-    const fileDataArray = [];
+    const fileDataArray = selectedFiles.map(file => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          resolve({ fileName: file.name, fileData: reader.result });
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+      });
+    });
 
-    selectedFiles.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        fileDataArray.push({
-          fileName: file.name,
-          fileData: reader.result,
-        });
+    Promise.all(fileDataArray).then(fileDataArray => {
+      socket.emit('send-files', fileDataArray);
 
-        if (fileDataArray.length === selectedFiles.length) {
-          socket.emit('send-files', fileDataArray);
-
-          socket.on('files-sent', (id) => {
-            setSessionId(id);
-          });
-        }
-      };
-      reader.readAsArrayBuffer(file);
+      socket.on('files-sent', (id) => {
+        setSessionId(id);
+      });
     });
   };
 
@@ -55,7 +49,7 @@ const App = () => {
     socket.emit('fetch-files', sessionId);
 
     socket.on('receive-files', (files) => {
-      setReceivedFiles(files); // Store received files in state
+      setReceivedFiles(files);
     });
 
     socket.on('error', (errorMessage) => {
@@ -83,6 +77,7 @@ const App = () => {
             ref={fileInputRef}
             type="file"
             style={{ display: 'none' }}
+            multiple
             onChange={handleFileChange}
           />
           <div style={{ cursor: "pointer" }} onClick={handleButtonClick}>
@@ -99,14 +94,12 @@ const App = () => {
               </div>
             )}
             <div>
-              {selectedFiles.length > 0 && selectedFiles.map((file, index) => {
-                return (
-                  <div key={index} style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: 'space-between', marginBottom: 5 }}>
-                    <p className='filelistitem'>{file.name}</p>
-                    <img src={require('./delete.png')} style={{ width: 20, height: 20, cursor: 'pointer' }} onClick={() => { handlefiledelete(index) }} />
-                  </div>
-                )
-              })}
+              {selectedFiles.length > 0 && selectedFiles.map((file, index) => (
+                <div key={index} style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: 'space-between', marginBottom: 5 }}>
+                  <p className='filelistitem'>{file.name}</p>
+                  <img src={require('./delete.png')} style={{ width: 20, height: 20, cursor: 'pointer' }} onClick={() => handleFileDelete(index)} />
+                </div>
+              ))}
             </div>
           </div>
           {selectedFiles.length > 0 && (
@@ -146,6 +139,6 @@ const App = () => {
       </div>
     </div>
   );
-}
+};
 
 export default App;
