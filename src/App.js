@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import './App.css';
 
-const socket = io(process.env.REACT_APP_LINK);
+const socket = io("https://pandasharebackend.vercel.app/");
 
 const App = () => {
   const [sessionId, setSessionId] = useState('');
