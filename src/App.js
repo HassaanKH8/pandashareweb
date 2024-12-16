@@ -2,11 +2,13 @@ import React, { useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 
 import './App.css';
+import QRCode from 'react-qr-code';
 
 const socket = io(process.env.REACT_APP_LINK_URL);
 
 const App = () => {
   const [sessionId, setSessionId] = useState('');
+  const [sessionIdInput, setSessionIdInput] = useState('');
   const fileInputRef = useRef(null);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [receivedFiles, setReceivedFiles] = useState([]);
@@ -17,7 +19,7 @@ const App = () => {
 
   const handleFileChange = (event) => {
     const files = Array.from(event.target.files);
-    setSelectedFiles(files);
+    setSelectedFiles(prevFiles => [...prevFiles, ...files]);
   };
 
   const handleFileDelete = (index) => {
@@ -65,6 +67,10 @@ const App = () => {
     link.click();
   };
 
+  const handleGoBack = () => {
+    setSessionId("")
+  }
+
   return (
     <div className="page">
       <div className='navbar'>
@@ -72,18 +78,23 @@ const App = () => {
       </div>
       <div className='bottomsection'>
         <div className='themaincontainer'>
-          <h1 className='containerheading'>Send</h1>
-          <input
-            ref={fileInputRef}
-            type="file"
-            style={{ display: 'none' }}
-            multiple
-            onChange={handleFileChange}
-          />
-          <div style={{ cursor: "pointer" }} onClick={handleButtonClick}>
-            {selectedFiles.length !== 0 && (
-              <div>
+          <div style={{ display: 'flex', flexDirection: "row", alignItems: 'center', justifyContent: 'space-between' }}>
+            <h1 className='containerheading'>Send</h1>
+            <input
+              ref={fileInputRef}
+              type="file"
+              style={{ display: 'none' }}
+              multiple
+              onChange={handleFileChange}
+            />
+            <div style={{ cursor: "pointer" }} onClick={handleButtonClick}>
+              {selectedFiles.length !== 0 && !sessionId && (
                 <h1 className='addmoreheading'>+ Add More</h1>
+              )}
+            </div>
+            {sessionId && (
+              <div style={{ cursor: "pointer" }} onClick={handleGoBack}>
+                <h1 className='addmoreheading'>←</h1>
               </div>
             )}
           </div>
@@ -94,43 +105,50 @@ const App = () => {
               </div>
             )}
             <div>
-              {selectedFiles.length > 0 && selectedFiles.map((file, index) => (
-                <div key={index} style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: 'space-between', marginBottom: 5 }}>
-                  <p className='filelistitem'>{file.name}</p>
-                  <img src={require('./delete.png')} style={{ width: 20, height: 20, cursor: 'pointer' }} onClick={() => handleFileDelete(index)} />
+              {sessionId ? (
+                <div className='sessionscontainer'>
+                  <QRCode value={sessionId} fgColor='#dec7ae' bgColor='#456b79' size={150} />
+                  <p style={{ fontFamily: "EB Garamond", fontSize: 16, color: '#dec7ae', marginTop: 5 }}>{sessionId}</p>
                 </div>
-              ))}
+              ) : (
+                <div>
+                  {selectedFiles.length > 0 && selectedFiles.map((file, index) => (
+                    <div key={index} style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: 'space-between', marginBottom: 5 }}>
+                      <p className='filelistitem'>{file.name}</p>
+                      <img alt='delete' src={require('./delete.png')} style={{ width: 20, height: 20, cursor: 'pointer' }} onClick={() => handleFileDelete(index)} />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           {selectedFiles.length > 0 && (
-            <button onClick={handleSend}>Send</button>
+            <button onClick={handleSend} className='sendbutton'>Send</button>
           )}
         </div>
         <div className='themaincontainer'>
           <h1 className='containerheading'>Receive</h1>
           <div className='filescontainer'>
             <div>
-              <h1>Receive Files</h1>
               <input
                 type="text"
-                placeholder="Enter 6-digit code"
-                value={sessionId}
-                onChange={(e) => setSessionId(e.target.value)}
+                placeholder="Enter Input Code"
+                value={sessionIdInput}
+                onChange={(e) => setSessionIdInput(e.target.value)}
+                className='receiveinp'
               />
-              <button onClick={handleFetch}>Fetch Files</button>
+              <button onClick={handleFetch} className='recbtn'>Receive</button>
               {receivedFiles.length > 0 && (
-                <div>
-                  <h2>Files:</h2>
-                  <ul>
-                    {receivedFiles.map((file, index) => (
-                      <li key={index}>
-                        {file.fileName}{' '}
-                        <button onClick={() => downloadFile(file.fileData, file.fileName)}>
-                          Download
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+                <div style={{ marginTop: 10 }}>
+                  <h2 className='secondlyheading'>Files:</h2>
+                  {receivedFiles.map((file, index) => (
+                    <div className='recfile' key={index}>
+                      <p>{file.fileName}</p>
+                      <button onClick={() => downloadFile(file.fileData, file.fileName)}>
+                        Download
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

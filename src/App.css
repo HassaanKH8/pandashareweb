@@ -87,9 +87,94 @@
 }
 
 .addmoreheading {
-  font-size: 24px;
+  font-size: 20px;
   font-family: "EB Garamond";
   font-weight: 500;
-  color: #dec7ae;
+  background-color: #dec7ae;
+  color: #2b444d;
+  padding: 5px 10px;
+  border-radius: 10px;
+}
+
+.sendbutton {
+  font-size: 18px;
+  font-family: "EB Garamond";
+  font-weight: 500;
+  background-color: #ead5bf;
+  color: #2b444d;
+  padding: 4px 10px;
+  border: none;
+  border-radius: 10px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+.receiveinp {
+  width: 175px;
+  padding: 10px;
+  font-family: "EB Garamond";
+  font-size: 16px;
+  font-weight: 500;
+  border: none;
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+  background-color: #ead5bf;
+  color: #1f2e34;
+}
+
+.recbtn {
+  font-size: 16px;
+  font-family: "EB Garamond";
+  font-weight: 500;
+  background-color: #2b444d;
+  color: #ead5bf;
+  padding: 10px;
+  border: none;
+  border-top-right-radius: 10px;
+  border-bottom-right-radius: 10px;
+  cursor: pointer;
+}
+
+.secondlyheading {
+  font-size: 24px;
   margin-bottom: 10px;
+  font-family: "EB Garamond";
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  color: #dec7ae;
+}
+
+.recfile {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin: 5px;
+}
+
+.recfile p{
+  font-size: 18px;
+  color: #ead5bf;
+  font-family: "EB Garamond";
+  font-weight: 500;
+}
+
+.recfile button {
+  font-size: 14px;
+  font-family: "EB Garamond";
+  font-weight: 500;
+  background-color: #2b444d;
+  color: #ead5bf;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.sessionscontainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
