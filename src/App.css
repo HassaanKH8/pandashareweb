@@ -36,7 +36,7 @@
 }
 
 .filescontainer {
-  border: #dec7ae 1px solid;
+  border: #ead5bf 1px solid;
   margin-top: 10px;
   padding: 10px;
   height: 200px;
@@ -48,12 +48,12 @@
   font-family: "EB Garamond";
   font-size: 28px;
   font-weight: 500;
-  color: #dec7ae;
+  color: #ead5bf;
 }
 
 .sendBtn {
   cursor: pointer;
-  color: #dec7ae;
+  color: #ead5bf;
   font-family: "EB Garamond";
   font-size: 76px;
 }
@@ -70,13 +70,13 @@
   font-size: 32px;
   font-family: "EB Garamond";
   font-weight: 600;
-  color: #dec7ae;
+  color: #ead5bf;
 }
 
 .filelistitem {
   font-family: "EB Garamond";
   font-size: 18px;
-  color: #dec7ae;
+  color: #ead5bf;
 }
 
 .filescontainerbtn {
@@ -90,7 +90,7 @@
   font-size: 20px;
   font-family: "EB Garamond";
   font-weight: 500;
-  background-color: #dec7ae;
+  background-color: #ead5bf;
   color: #2b444d;
   padding: 5px 10px;
   border-radius: 10px;
@@ -142,7 +142,7 @@
   font-weight: 800;
   text-decoration: underline;
   text-underline-offset: 2px;
-  color: #dec7ae;
+  color: #ead5bf;
 }
 
 .recfile {

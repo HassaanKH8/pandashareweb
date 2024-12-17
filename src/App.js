@@ -3,6 +3,7 @@ import { io } from 'socket.io-client';
 import QRCode from 'react-qr-code';
 
 import './App.css';
+import ProgressBar from './ProgressBar';
 
 const socket = io(process.env.REACT_APP_LINK_URL);
 
@@ -12,8 +13,12 @@ const App = () => {
   const fileInputRef = useRef(null);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [receivedFiles, setReceivedFiles] = useState([]);
+  const [progress, setProgress] = useState(0);
+  const [filesSentSuccessfully, setFilesSentSuccessfully] = useState(false);
+  const [filesReceivedSuccessfully, setFilesReceivedSuccessfully] = useState(false);
+  const [receivePressed, setReceivePressed] = useState(false);
 
-  const CHUNK_SIZE = 512 * 1024; // 512 KB
+  const CHUNK_SIZE = 512 * 1024;
 
   const handleButtonClick = () => {
     fileInputRef.current.click();
@@ -28,7 +33,7 @@ const App = () => {
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const sendFileChunks = (file, sessionId) => {
+  const sendFileChunks = (file, sessionId, totalFiles, fileIndex) => {
     return new Promise((resolve) => {
       const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
       let chunkIndex = 0;
@@ -42,7 +47,9 @@ const App = () => {
           fileName: file.name,
           chunkIndex,
           totalChunks,
-          chunkData: btoa(chunkData), // Convert to Base64
+          chunkData: btoa(chunkData),
+          totalFiles,
+          fileIndex,
         });
 
         chunkIndex++;
@@ -70,24 +77,48 @@ const App = () => {
     socket.on('session-created', async (id) => {
       setSessionId(id);
 
-      for (const file of selectedFiles) {
-        await sendFileChunks(file, id);
-      }
+      const totalFiles = selectedFiles.length;
 
-      console.log('All files sent successfully');
+      for (let index = 0; index < totalFiles; index++) {
+        const file = selectedFiles[index];
+
+        await sendFileChunks(file, id, totalFiles, index);
+        setProgress((index + 1 / totalFiles) * 100)
+        if (index + 1 === totalFiles) {
+          setFilesSentSuccessfully(true)
+        }
+      }
     });
   };
 
+
   const handleFetch = () => {
+    setReceivePressed(true)
+    setProgress(0);
+    setFilesReceivedSuccessfully(false);
+    const receivedFiles = [];
+
     socket.emit('fetch-files', sessionIdInput);
 
-    socket.on('receive-files', (files) => {
-      setReceivedFiles(files);
+    socket.on('receive-files-data', (totalFiles) => {
+      setProgress(0);
+    });
+
+    socket.on('receive-file-chunk', ({ file, index, totalFiles }) => {
+      receivedFiles.push(file);
+
+      setProgress(((index / totalFiles) * 100).toFixed(2));
+
+      if (index === totalFiles) {
+        setFilesReceivedSuccessfully(true);
+        setReceivedFiles(receivedFiles);
+      }
     });
 
     socket.on('error', (errorMessage) => {
       alert(errorMessage);
     });
+    // setReceivePressed(false)
   };
 
   const downloadFile = (fileData, fileName) => {
@@ -136,8 +167,17 @@ const App = () => {
             <div>
               {sessionId ? (
                 <div className='sessionscontainer'>
-                  <QRCode value={sessionId} size={150} />
-                  <p style={{ fontFamily: "EB Garamond", fontSize: 16, color: '#dec7ae', marginTop: 5 }}>{sessionId}</p>
+                  {filesSentSuccessfully ? (
+                    <div>
+                      <QRCode value={sessionId} size={150} />
+                      <p style={{ fontFamily: "EB Garamond", fontSize: 16, color: '#ead5bf', marginTop: 5 }}>{sessionId}</p>
+                    </div>
+                  ) : (
+                    <div style={{ width: "100%" }}>
+                      <p style={{ textAlign: 'right', marginBottom: 5, fontFamily: "EB Garamond", fontWeight: 500, color: '#ead5bf' }}>{progress}%</p>
+                      <ProgressBar progress={progress} />
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div>
@@ -164,15 +204,28 @@ const App = () => {
               className="receiveinp"
             />
             <button onClick={handleFetch} className="recbtn">Receive</button>
-            {receivedFiles.length > 0 && (
+            {filesReceivedSuccessfully ? (
               <div>
-                <h2 className="secondlyheading">Files:</h2>
-                {receivedFiles.map((file, index) => (
-                  <div className="recfile" key={index}>
-                    <p>{file.fileName}</p>
-                    <button onClick={() => downloadFile(file.fileData, file.fileName)}>Download</button>
+                {receivedFiles.length > 0 && (
+                  <div>
+                    <h2 className="secondlyheading">Files:</h2>
+                    {receivedFiles.map((file, index) => (
+                      <div className="recfile" key={index}>
+                        <p>{file.fileName}</p>
+                        <button onClick={() => downloadFile(file.fileData, file.fileName)}>Download</button>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
+              </div>
+            ) : (
+              <div style={{ width: "100%" }}>
+                {receivePressed && (
+                  <div>
+                    <p style={{ textAlign: 'right', marginBottom: 5, fontFamily: "EB Garamond", fontWeight: 500, color: '#ead5bf' }}>{progress}%</p>
+                    <ProgressBar progress={progress} />
+                  </div>
+                )}
               </div>
             )}
           </div>
