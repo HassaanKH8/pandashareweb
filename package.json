@@ -4,6 +4,8 @@
   "private": true,
   "dependencies": {
     "cra-template": "1.2.0",
+    "jszip": "^3.10.1",
+    "pako": "^2.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-qr-code": "^2.0.15",

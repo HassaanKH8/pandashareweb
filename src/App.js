@@ -1,8 +1,8 @@
 import React, { useRef, useState } from 'react';
 import { io } from 'socket.io-client';
+import QRCode from 'react-qr-code';
 
 import './App.css';
-import QRCode from 'react-qr-code';
 
 const socket = io(process.env.REACT_APP_LINK_URL);
 
@@ -13,37 +13,68 @@ const App = () => {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [receivedFiles, setReceivedFiles] = useState([]);
 
+  const CHUNK_SIZE = 512 * 1024; // 512 KB
+
   const handleButtonClick = () => {
     fileInputRef.current.click();
   };
 
   const handleFileChange = (event) => {
     const files = Array.from(event.target.files);
-    setSelectedFiles(prevFiles => [...prevFiles, ...files]);
+    setSelectedFiles((prevFiles) => [...prevFiles, ...files]);
   };
 
   const handleFileDelete = (index) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSend = () => {
-    const fileDataArray = selectedFiles.map(file => {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          resolve({ fileName: file.name, fileData: reader.result });
-        };
-        reader.onerror = reject;
-        reader.readAsArrayBuffer(file);
-      });
+  const sendFileChunks = (file, sessionId) => {
+    return new Promise((resolve) => {
+      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+      let chunkIndex = 0;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const chunkData = e.target.result;
+
+        socket.emit('send-file-chunk', {
+          sessionId,
+          fileName: file.name,
+          chunkIndex,
+          totalChunks,
+          chunkData: btoa(chunkData), // Convert to Base64
+        });
+
+        chunkIndex++;
+        if (chunkIndex < totalChunks) {
+          readNextChunk();
+        } else {
+          resolve();
+        }
+      };
+
+      const readNextChunk = () => {
+        const start = chunkIndex * CHUNK_SIZE;
+        const end = Math.min(file.size, start + CHUNK_SIZE);
+        const blob = file.slice(start, end);
+        reader.readAsBinaryString(blob);
+      };
+
+      readNextChunk();
     });
+  };
 
-    Promise.all(fileDataArray).then(fileDataArray => {
-      socket.emit('send-files', fileDataArray);
+  const handleSend = async () => {
+    socket.emit('start-session');
 
-      socket.on('files-sent', (id) => {
-        setSessionId(id);
-      });
+    socket.on('session-created', async (id) => {
+      setSessionId(id);
+
+      for (const file of selectedFiles) {
+        await sendFileChunks(file, id);
+      }
+
+      console.log('All files sent successfully');
     });
   };
 
@@ -60,7 +91,7 @@ const App = () => {
   };
 
   const downloadFile = (fileData, fileName) => {
-    const blob = new Blob([new Uint8Array(fileData)]);
+    const blob = new Blob([Uint8Array.from(atob(fileData), (c) => c.charCodeAt(0))]);
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = fileName;
@@ -68,18 +99,18 @@ const App = () => {
   };
 
   const handleGoBack = () => {
-    setSessionId("")
-  }
+    setSessionId('');
+  };
 
   return (
     <div className="page">
-      <div className='navbar'>
-        <h1 className='heading'>🏴‍☠️ Pirate File Sharing App 🏴‍☠️</h1>
+      <div className="navbar">
+        <h1 className="heading">🏴‍☠️ Pirate File Sharing App 🏴‍☠️</h1>
       </div>
-      <div className='bottomsection'>
-        <div className='themaincontainer'>
-          <div style={{ display: 'flex', flexDirection: "row", alignItems: 'center', justifyContent: 'space-between' }}>
-            <h1 className='containerheading'>Send</h1>
+      <div className="bottomsection">
+        <div className="themaincontainer">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h1 className="containerheading">Send</h1>
             <input
               ref={fileInputRef}
               type="file"
@@ -87,21 +118,19 @@ const App = () => {
               multiple
               onChange={handleFileChange}
             />
-            <div style={{ cursor: "pointer" }} onClick={handleButtonClick}>
-              {selectedFiles.length !== 0 && !sessionId && (
-                <h1 className='addmoreheading'>+ Add More</h1>
-              )}
+            <div style={{ cursor: 'pointer' }} onClick={handleButtonClick}>
+              {selectedFiles.length !== 0 && !sessionId && <h1 className="addmoreheading">+ Add More</h1>}
             </div>
             {sessionId && (
-              <div style={{ cursor: "pointer" }} onClick={handleGoBack}>
-                <h1 className='addmoreheading'>←</h1>
+              <div style={{ cursor: 'pointer' }} onClick={handleGoBack}>
+                <h1 className="addmoreheading">←</h1>
               </div>
             )}
           </div>
-          <div className='filescontainer'>
+          <div className="filescontainer">
             {selectedFiles.length === 0 && (
-              <div className='filescontainerbtn' style={{ cursor: "pointer" }} onClick={handleButtonClick}>
-                <h1 className='sendBtn'>+</h1>
+              <div className="filescontainerbtn" onClick={handleButtonClick}>
+                <h1 className="sendBtn">+</h1>
               </div>
             )}
             <div>
@@ -122,36 +151,30 @@ const App = () => {
               )}
             </div>
           </div>
-          {selectedFiles.length > 0 && (
-            <button onClick={handleSend} className='sendbutton'>Send</button>
-          )}
+          {selectedFiles.length > 0 && <button onClick={handleSend} className="sendbutton">Send</button>}
         </div>
-        <div className='themaincontainer'>
-          <h1 className='containerheading'>Receive</h1>
-          <div className='filescontainer'>
-            <div>
-              <input
-                type="text"
-                placeholder="Enter Input Code"
-                value={sessionIdInput}
-                onChange={(e) => setSessionIdInput(e.target.value)}
-                className='receiveinp'
-              />
-              <button onClick={handleFetch} className='recbtn'>Receive</button>
-              {receivedFiles.length > 0 && (
-                <div style={{ marginTop: 10 }}>
-                  <h2 className='secondlyheading'>Files:</h2>
-                  {receivedFiles.map((file, index) => (
-                    <div className='recfile' key={index}>
-                      <p>{file.fileName}</p>
-                      <button onClick={() => downloadFile(file.fileData, file.fileName)}>
-                        Download
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+        <div className="themaincontainer">
+          <h1 className="containerheading">Receive</h1>
+          <div className="filescontainer">
+            <input
+              type="text"
+              placeholder="Enter Input Code"
+              value={sessionIdInput}
+              onChange={(e) => setSessionIdInput(e.target.value)}
+              className="receiveinp"
+            />
+            <button onClick={handleFetch} className="recbtn">Receive</button>
+            {receivedFiles.length > 0 && (
+              <div>
+                <h2 className="secondlyheading">Files:</h2>
+                {receivedFiles.map((file, index) => (
+                  <div className="recfile" key={index}>
+                    <p>{file.fileName}</p>
+                    <button onClick={() => downloadFile(file.fileData, file.fileName)}>Download</button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
