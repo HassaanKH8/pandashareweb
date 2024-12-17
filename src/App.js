@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import QRCode from 'react-qr-code';
 
@@ -17,6 +17,19 @@ const App = () => {
   const [filesSentSuccessfully, setFilesSentSuccessfully] = useState(false);
   const [filesReceivedSuccessfully, setFilesReceivedSuccessfully] = useState(false);
   const [receivePressed, setReceivePressed] = useState(false);
+  const [loading, setLoading] = useState(false)
+  const loadingText = "Loading"
+  const [dotCount, setDotCount] = useState(0);
+
+  useEffect(() => {
+    if (loading) {
+      const interval = setInterval(() => {
+        setDotCount((prev) => (prev + 1) % 4);
+      }, 500);
+      return () => clearInterval(interval);
+    }
+    setDotCount(0);
+  }, [loading]);
 
   const CHUNK_SIZE = 512 * 1024;
 
@@ -94,19 +107,16 @@ const App = () => {
 
   const handleFetch = () => {
     setReceivePressed(true)
+    setLoading(true)
     setProgress(0);
     setFilesReceivedSuccessfully(false);
     const receivedFiles = [];
 
     socket.emit('fetch-files', sessionIdInput);
 
-    socket.on('receive-files-data', (totalFiles) => {
-      setProgress(0);
-    });
-
     socket.on('receive-file-chunk', ({ file, index, totalFiles }) => {
       receivedFiles.push(file);
-
+      setLoading(false)
       setProgress(((index / totalFiles) * 100).toFixed(2));
 
       if (index === totalFiles) {
@@ -224,7 +234,12 @@ const App = () => {
               <div style={{ width: "100%" }}>
                 {receivePressed && (
                   <div>
-                    <p style={{ textAlign: 'right', marginBottom: 5, fontFamily: "EB Garamond", fontWeight: 500, color: '#ead5bf' }}>{progress}%</p>
+                    <div style={{display: 'flex', flexDirection: 'row', justifyContent: "space-between", alignItems: 'center'}}>
+                      {loading && (
+                        <p style={{ marginBottom: 5, fontFamily: "EB Garamond", fontWeight: 500, color: '#ead5bf', fontSize: 18 }}>{`${loadingText}${'.'.repeat(dotCount)}`}</p>
+                      )}
+                      <p style={{ marginBottom: 5, fontFamily: "EB Garamond", fontWeight: 500, color: '#ead5bf', fontSize: 18 }}>{progress}%</p>
+                    </div>
                     <ProgressBar progress={progress} />
                   </div>
                 )}
