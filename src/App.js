@@ -48,7 +48,7 @@ const App = () => {
   };
 
   const handleFetch = () => {
-    socket.emit('fetch-files', sessionId);
+    socket.emit('fetch-files', sessionIdInput);
 
     socket.on('receive-files', (files) => {
       setReceivedFiles(files);
@@ -107,7 +107,7 @@ const App = () => {
             <div>
               {sessionId ? (
                 <div className='sessionscontainer'>
-                  <QRCode value={sessionId} fgColor='#dec7ae' bgColor='#456b79' size={150} />
+                  <QRCode value={sessionId} size={150} />
                   <p style={{ fontFamily: "EB Garamond", fontSize: 16, color: '#dec7ae', marginTop: 5 }}>{sessionId}</p>
                 </div>
               ) : (
