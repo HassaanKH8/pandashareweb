@@ -196,14 +196,16 @@ const App = () => {
         <div className="themaincontainer">
           <h1 className="containerheading">Receive</h1>
           <div className="filescontainer">
-            <input
-              type="text"
-              placeholder="Enter Input Code"
-              value={sessionIdInput}
-              onChange={(e) => setSessionIdInput(e.target.value)}
-              className="receiveinp"
-            />
-            <button onClick={handleFetch} className="recbtn">Receive</button>
+            <div className='inputDivcenter'>
+              <input
+                type="text"
+                placeholder="Enter Input Code"
+                value={sessionIdInput}
+                onChange={(e) => setSessionIdInput(e.target.value)}
+                className="receiveinp"
+              />
+              <button onClick={handleFetch} className="recbtn">Receive</button>
+            </div>
             {filesReceivedSuccessfully ? (
               <div>
                 {receivedFiles.length > 0 && (

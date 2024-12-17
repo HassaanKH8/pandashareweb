@@ -23,7 +23,7 @@
 
 .themaincontainer {
   padding: 16px;
-  width: 300px;
+  width: 350px;
   background-color: #456b79;
   margin-left: 50px;
   margin-bottom: 30px;
@@ -120,6 +120,12 @@
   border-bottom-left-radius: 10px;
   background-color: #ead5bf;
   color: #1f2e34;
+}
+
+.inputDivcenter {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
 }
 
 .recbtn {
